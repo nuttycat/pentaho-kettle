@@ -6,7 +6,7 @@
 
   <groupId>pentaho-kettle</groupId>
   <artifactId>kettle-engine</artifactId>
-  <version>9.0.0.0-SNAPSHOT</version>
+  <version>8.2.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>PDI Engine</name>
@@ -14,7 +14,7 @@
   <parent>
     <groupId>org.pentaho.di</groupId>
     <artifactId>pdi</artifactId>
-    <version>9.0.0.0-SNAPSHOT</version>
+    <version>8.2.0.0-SNAPSHOT</version>
   </parent>
 
   <properties>
@@ -23,10 +23,10 @@
     <maven-failsafe-plugin.reuseForks>false</maven-failsafe-plugin.reuseForks>
 
     <!-- Pentaho dependencies -->
-    <pentaho-reporting.version>9.0.0.0-SNAPSHOT</pentaho-reporting.version>
-    <pentaho-registry.version>9.0.0.0-SNAPSHOT</pentaho-registry.version>
-    <pentaho-connections.version>9.0.0.0-SNAPSHOT</pentaho-connections.version>
-    <mondrian.version>9.0.0.0-SNAPSHOT</mondrian.version>
+    <pentaho-reporting.version>8.2.0.0-SNAPSHOT</pentaho-reporting.version>
+    <pentaho-registry.version>8.2.0.0-SNAPSHOT</pentaho-registry.version>
+    <pentaho-connections.version>8.2.0.0-SNAPSHOT</pentaho-connections.version>
+    <mondrian.version>8.2.0.0-SNAPSHOT</mondrian.version>
 
     <!-- Third-party dependencies -->
     <antlr-complete.version>3.5.2</antlr-complete.version>
@@ -149,6 +149,10 @@
 
 
     <!-- Third-party dependencies -->
+    <dependency>
+      <groupId>org.dom4j</groupId>
+      <artifactId>dom4j</artifactId>
+    </dependency>
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
@@ -875,6 +879,7 @@
       <artifactId>h2</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- required by org.dom4j -->
     <dependency>
       <groupId>jaxen</groupId>
       <artifactId>jaxen</artifactId>

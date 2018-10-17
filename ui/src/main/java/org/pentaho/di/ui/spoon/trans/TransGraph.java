@@ -421,7 +421,7 @@ public class TransGraph extends AbstractGraph implements XulEventHandler, Redraw
     this.areaOwners = new ArrayList<>();
 
     this.log = spoon.getLog();
-    spoon.selectionFilter.setText( "" );
+    spoon.clearSearchFilter();
 
     this.mouseOverSteps = new ArrayList<>();
     this.delayTimers = new HashMap<>();
@@ -3017,8 +3017,13 @@ public class TransGraph extends AbstractGraph implements XulEventHandler, Redraw
               tip.append( "-" );
             }
             tip.append( Const.CR ).append( tipNext ).append( Const.CR );
-            tip.append( BaseMessages.getString( PKG, "TransGraph.DeprecatedStep.Tooltip.Message2",
-              iconStepMeta.getSuggestion() ) );
+            tip.append( BaseMessages.getString( PKG, "TransGraph.DeprecatedStep.Tooltip.Message2" ) );
+            if ( !Utils.isEmpty( iconStepMeta.getSuggestion() )
+              && !( iconStepMeta.getSuggestion().startsWith( "!" ) && iconStepMeta.getSuggestion().endsWith( "!" ) ) ) {
+              tip.append( " " );
+              tip.append( BaseMessages.getString( PKG, "TransGraph.DeprecatedStep.Tooltip.Message3",
+                iconStepMeta.getSuggestion() ) );
+            }
             tipImage = GUIResource.getInstance().getImageDeprecated();
             toolTip.setHideDelay( TOOLTIP_HIDE_DELAY_LONG );
           }

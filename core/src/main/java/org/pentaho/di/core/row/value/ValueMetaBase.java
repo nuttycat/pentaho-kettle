@@ -73,6 +73,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
@@ -292,7 +293,7 @@ public class ValueMetaBase implements ValueMetaInterface {
                 break;
               default:
                 throw new KettleException( toString()
-                  + " : Unable to de-serialize indexe storage type from XML for data type " + getType() );
+                  + " : Unable to de-serialize index storage type from XML for data type " + getType() );
             }
           }
         }
@@ -748,7 +749,7 @@ public class ValueMetaBase implements ValueMetaInterface {
     this.caseInsensitive = caseInsensitive;
   }
 
-   /**
+  /**
    * @return the collatorDisabled
    */
   @Override
@@ -1383,11 +1384,21 @@ public class ValueMetaBase implements ValueMetaInterface {
 
         if ( parsePosition.getIndex() < string.length() ) {
           throw new KettleValueException( toString()
-              + " : couldn't convert String to number : non-numeric character found at position "
-              + ( parsePosition.getIndex() + 1 ) + " for value [" + string + "]" );
+            + " : couldn't convert String to number : non-numeric character found at position "
+            + ( parsePosition.getIndex() + 1 ) + " for value [" + string + "]" );
         }
       }
+
+      // PDI-17366: Cannot simply cast a number to a BigDecimal,
+      //            If the Number is not a BigDecimal.
+      //
+      if ( number instanceof Double ) {
+        return BigDecimal.valueOf( number.doubleValue() );
+      } else if ( number instanceof Long ) {
+        return BigDecimal.valueOf( number.longValue() );
+      }
       return (BigDecimal) number;
+
     } catch ( Exception e ) {
       // We added this workaround for PDI-1824
       //
@@ -4120,6 +4131,15 @@ public class ValueMetaBase implements ValueMetaInterface {
         case TYPE_BIGNUMBER:
           hash ^= 32;
           break;
+        case TYPE_BINARY:
+          hash ^= 64;
+          break;
+        case TYPE_TIMESTAMP:
+          hash ^= 128;
+          break;
+        case TYPE_INET:
+          hash ^= 256;
+          break;
         case TYPE_NONE:
           break;
         default:
@@ -4144,6 +4164,15 @@ public class ValueMetaBase implements ValueMetaInterface {
           break;
         case TYPE_BIGNUMBER:
           hash ^= getBigNumber( object ).hashCode();
+          break;
+        case TYPE_BINARY:
+          hash ^= Arrays.hashCode( (byte[]) object );
+          break;
+        case TYPE_TIMESTAMP:
+          hash ^= ((Timestamp) object ).hashCode();
+          break;
+        case TYPE_INET:
+          hash ^= ((InetAddress) object ).hashCode();
           break;
         case TYPE_NONE:
           break;
@@ -5337,12 +5366,15 @@ public class ValueMetaBase implements ValueMetaInterface {
             if ( getLength() == DatabaseMeta.CLOB_LENGTH ) {
               setLength( databaseMeta.getMaxTextFieldLength() );
             }
-            String string = getString( data );
-            int len = string.length();
-            int maxlen = isLengthInvalidOrZero() ? len : getLength();
-            if ( len <= maxlen ) {
-              preparedStatement.setString( index, string );
+
+            if ( getLength() <= databaseMeta.getMaxTextFieldLength() ) {
+              preparedStatement.setString( index, getString( data ) );
             } else {
+              String string = getString( data );
+
+              int maxlen = databaseMeta.getMaxTextFieldLength();
+              int len = string.length();
+
               // Take the last maxlen characters of the string...
               int begin = Math.max( len - maxlen, 0 );
               if ( begin > 0 ) {
@@ -5350,9 +5382,9 @@ public class ValueMetaBase implements ValueMetaInterface {
                 log.logMinimal( String.format( "Truncating %d symbols of original message in '%s' field", begin, getName() ) );
                 string = string.substring( begin );
               }
+
               if ( databaseMeta.supportsSetCharacterStream() ) {
-                StringReader sr = new StringReader( string );
-                preparedStatement.setCharacterStream( index, sr, string.length() );
+                preparedStatement.setCharacterStream( index, new StringReader( string ), string.length() );
               } else {
                 preparedStatement.setString( index, string );
               }

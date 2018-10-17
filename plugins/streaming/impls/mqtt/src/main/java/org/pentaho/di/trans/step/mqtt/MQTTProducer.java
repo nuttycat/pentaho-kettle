@@ -22,6 +22,7 @@
 
 package org.pentaho.di.trans.step.mqtt;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -41,9 +42,9 @@ import org.pentaho.di.trans.step.StepMetaInterface;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.nio.charset.Charset.defaultCharset;
 import static java.util.Optional.ofNullable;
 import static org.pentaho.di.i18n.BaseMessages.getString;
 
@@ -125,7 +126,7 @@ public class MQTTProducer extends BaseStep implements StepInterface {
   }
 
   private MqttClient connectToClient() {
-    logDebug( "Publishing using a quality of service level of " + environmentSubstitute( meta.qos ) );
+    logDebug( "Publishing using a quality of service level of " + meta.qos );
     try {
       return
         MQTTClientBuilder.builder()
@@ -157,10 +158,11 @@ public class MQTTProducer extends BaseStep implements StepInterface {
       mqttMessage.setQos( Integer.parseInt( meta.qos ) );
     } catch ( NumberFormatException e ) {
       throw new KettleStepException(
-        getString( PKG, "MQTTProducer.Error.QOS", environmentSubstitute( meta.qos ) ) );
+        getString( PKG, "MQTTProducer.Error.QOS", meta.qos ) );
     }
-    String fieldAsString = getFieldAsString( row, meta.messageField );
-    mqttMessage.setPayload( fieldAsString.getBytes( defaultCharset() ) );
+    mqttMessage.setPayload( getField( row, meta.messageField )
+      .map( fas -> fas.getBytes( Charsets.UTF_8 ) )
+      .orElse( null ) ); //allow nulls to pass through
     return mqttMessage;
   }
 
@@ -170,17 +172,17 @@ public class MQTTProducer extends BaseStep implements StepInterface {
   private String getTopic( Object[] row ) {
     String topic;
     if ( meta.topicInField ) {
-      topic = getFieldAsString( row, meta.fieldTopic );
+      topic = getField( row, meta.fieldTopic ).orElse( "" );
     } else {
       topic = meta.topic;
     }
     return topic;
   }
 
-  private String getFieldAsString( Object[] row, String field ) {
+  private Optional<String> getField( Object[] row, String field ) {
     int messageFieldIndex = getInputRowMeta().indexOfValue( field );
     checkArgument( messageFieldIndex > -1, getString( PKG, "MQTTProducer.Error.FieldNotFound", field ) );
-    return ofNullable( ( row[ messageFieldIndex ] ).toString() ).orElse( "" );
+    return ofNullable( row[ messageFieldIndex ] ).map( f -> f.toString() );
   }
 
   @Override public void stopRunning( StepMetaInterface stepMetaInterface, StepDataInterface stepDataInterface )
